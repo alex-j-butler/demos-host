@@ -1,0 +1,13 @@
+# D
+.dub
+docs.json
+__dummy.html
+*.o
+*.a
+*.obj
+tmp/
+bin/
+
+# demos-host
+logs/
+public/demos/

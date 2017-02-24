@@ -1,0 +1,24 @@
+extends layout.dt
+
+block content
+    - import std.path;
+    - import std.datetime;
+    - import sizefmt;
+
+    h1 Demos for '#{userName}'
+
+    .panel.panel-info
+        .panel-heading Demos
+        table.table.table-striped
+            tr
+                th Name
+                th Size
+                th Uploaded At
+            - foreach (demo; demos)
+                tr
+                    td.col-sm-8
+                        - auto name = demo.baseName;
+                        a(href="/static/demos/#{_client}/#{_user}/#{name}")= name
+
+                    td.col-sm-2 #{Size(demo.size)}
+                    td.col-sm-2= (cast(DateTime)demo.timeLastModified).toSimpleString
