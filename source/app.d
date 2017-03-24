@@ -94,12 +94,12 @@ auto findUsers(string query) {
 auto router() {
     auto router = new URLRouter;
 
-    router.registerWebInterface(new DemosHost);
-
     auto fsettings = new HTTPFileServerSettings;
-    fsettings.serverPathPrefix = "/static";
+    fsettings.serverPathPrefix = "";
     router.get("/status", &getStatus);
     router.get("*", serveStaticFiles("public/", fsettings));
+
+    router.registerWebInterface(new DemosHost);
 
     return router;
 }

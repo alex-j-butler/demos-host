@@ -21,7 +21,7 @@ struct DemoPresenter {
     }
 
     @property string downloadPath() {
-        return "/static/demos/%s/%s/%s".format(client, user, name);
+        return "/demos/%s/%s/%s".format(client, user, name);
     }
 
     @property string name() {
