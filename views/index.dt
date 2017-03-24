@@ -1,0 +1,68 @@
+extends layout.dt
+
+block head
+    - if (query !is null)
+        title Demos | Search
+    - else
+        title Demos
+
+block content
+    - import std.string;
+
+    - import demo_presenter;
+
+    h1 ozfortress Demos
+
+    form(action="/", method="get")
+        .input-group
+            input.form-control(name="q", placeholder="User Search", type="text", value=query)
+            .input-group-btn
+                button.btn.btn-default(type="Submit")
+                    i.glyphicon.glyphicon-search
+
+    hr
+
+    - if (query !is null)
+        .panel.panel-info
+            .panel-heading Users (#{users.length})
+            - if (users.length == 0)
+                ul.list-group
+                    li.list-group-item No Users Found...
+            - else
+                table.table.table-striped
+                    tr
+                        th User
+                        th Uploader
+                    - foreach (group; users)
+                        - auto client = group[0];
+                        - auto user = group[1];
+                        - auto userName = group[2];
+                        - auto path = "/%s/%s".format(client, user);
+
+                        tr
+                            td.col-sm-2
+                                a(href=path)= userName
+                            td.col-sm-2= client
+
+    - if (demos !is null)
+        .panel.panel-info
+            .panel-heading Recent Demos (#{demos.length})
+            table.table.table-striped
+                tr
+                    th User
+                    th Name
+                    th Size
+                    th Uploaded At
+                - foreach (group; demos)
+                    - auto client = group[0];
+                    - auto user = group[1];
+                    - auto demo = group[2];
+                    - auto demo_p = DemoPresenter(client, user, demo);
+
+                    tr
+                        td.col-sm-2
+                            a(href=demo_p.userPath)= demo_p.userName
+                        td.col-sm-7
+                            a(href=demo_p.downloadPath)= demo_p.name
+                        td.col-sm-1= demo_p.size
+                        td.col-sm-2= demo_p.creationTime

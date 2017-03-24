@@ -1,24 +1,29 @@
 extends layout.dt
 
+block head
+    title Demos | #{userName}
+
 block content
-    - import std.path;
-    - import std.datetime;
-    - import sizefmt;
+    - import demo_presenter;
 
     h1 Demos for '#{userName}'
 
     .panel.panel-info
-        .panel-heading Demos
-        table.table.table-striped
-            tr
-                th Name
-                th Size
-                th Uploaded At
-            - foreach (demo; demos)
+        .panel-heading Demos (#{demos.length})
+        - if (demos.length == 0)
+            ul.list-group
+                li.list-group-item No Demos Found...
+        - else
+            table.table.table-striped
                 tr
-                    td.col-sm-8
-                        - auto name = demo.baseName;
-                        a(href="/static/demos/#{_client}/#{_user}/#{name}")= name
+                    th Name
+                    th Size
+                    th Uploaded At
+                - foreach (demo; demos)
+                    - auto demo_p = DemoPresenter(client, user, demo);
 
-                    td.col-sm-2 #{Size(demo.size)}
-                    td.col-sm-2= (cast(DateTime)demo.timeLastModified).toSimpleString
+                    tr
+                        td.col-sm-9
+                            a(href=demo_p.downloadPath)= demo_p.name
+                        td.col-sm-1= demo_p.size
+                        td.col-sm-2= demo_p.creationTime

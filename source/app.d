@@ -2,6 +2,8 @@ import std.file;
 import std.path;
 import std.array;
 import std.ascii;
+import std.range;
+import std.typecons;
 import std.algorithm;
 
 import base32;
@@ -9,6 +11,9 @@ import vibe.d;
 import vibe.web.web;
 
 static import config.application;
+
+const DEMOS_PATH = buildPath("public", "demos");
+const MAX_DISTANCE = 0.3;
 
 version (unittest) {} else
 shared static this() {
@@ -30,7 +35,63 @@ shared static this() {
     logInfo("See status at http://127.0.0.1:%s/status".format(settings.port));
 }
 
-static auto router() {
+auto getClients() {
+    return dirEntries(DEMOS_PATH, SpanMode.shallow).map!(d => d.baseName);
+}
+
+auto getUsers() {
+    auto clients = getClients();
+    return clients.map!(client => getUsers(client).map!(user => tuple(client, user))).joiner;
+}
+
+auto getUsers(string client) {
+    return dirEntries(buildPath(DEMOS_PATH, client), SpanMode.shallow).map!(d => d.baseName);
+}
+
+auto getDemos(string client, string user) {
+    return dirEntries(buildPath(DEMOS_PATH, client, user), "*.dem", SpanMode.shallow).map!(d => d);
+}
+
+auto getDemos() {
+    auto users = getUsers();
+    return users.map!((t) => getDemos(t[0], t[1]).map!(demo => tuple(t[0], t[1], demo))).joiner;
+}
+
+float normalizedLevenshteinDistance(string query, string name) {
+    float distance = levenshteinDistance(query, name);
+
+    // Normalize by length
+    float maxLength = max(query.length, name.length);
+    return max(0.0, 1.0 - distance / maxLength);
+}
+
+auto findUsers(string query) {
+    query = query.toUpper;
+    auto users = getUsers();
+    Tuple!(string, string, string, float)[] goodMatches;
+
+    foreach (group; users) {
+        auto userName = cast(string)Base32.decode(group[1].toUpper);
+        auto name = userName.toUpper;
+
+        auto distance = normalizedLevenshteinDistance(query, name);
+
+        // Check for Discord user names
+        if (userName.length > 5 && userName[$-5] == '#') {
+            auto discordName = name[0..$-5];
+            distance = max(distance, normalizedLevenshteinDistance(query, discordName));
+        }
+
+        // Collect good matches
+        if (distance >= MAX_DISTANCE) {
+            goodMatches ~= tuple(group[0], group[1], userName, distance);
+        }
+    }
+
+    return goodMatches;
+}
+
+auto router() {
     auto router = new URLRouter;
 
     router.registerWebInterface(new DemosHost);
@@ -48,23 +109,45 @@ void getStatus(scope HTTPServerRequest req, scope HTTPServerResponse res) {
 }
 
 class DemosHost {
-    const DEMOS_PATH = buildPath("public", "demos");
+    @path("/")
+    void getIndex(scope HTTPServerRequest req, scope HTTPServerResponse res) {
+        Tuple!(string, string, string, float)[] users;
+        Tuple!(string, string, DirEntry)[] demos;
+
+        // Get search query
+        string query;
+        if ("q" in req.query) query = req.query["q"];
+        if (query.length == 0) query = null;
+
+        // Get user or demo data
+        if (query !is null) {
+            users = findUsers(query).sort!"a[3] > b[3]".array;
+        } else {
+            auto allDemos = getDemos().array;
+            // Get top 10 demos by time
+            demos = new Tuple!(string, string, DirEntry)[10];
+            demos = allDemos.topNCopy!"a[2].timeLastModified > b[2].timeLastModified"(demos, Yes.sortOutput);
+        }
+
+        res.render!("index.dt", query, demos, users);
+    }
 
     @path("/:client/:user")
     void getUser(string _client, string _user, scope HTTPServerResponse res) {
         // Sanitize Client
-        auto clients = dirEntries(DEMOS_PATH, SpanMode.shallow).map!(d => d.baseName);
+        auto clients = getClients();
         enforceHTTP(clients.canFind(_client), HTTPStatus.notFound, "Client not found");
 
         // Sanitize User
-        auto users = dirEntries(buildPath(DEMOS_PATH, _client), SpanMode.shallow).map!(d => d.baseName);
+        auto users = getUsers(_client);
         enforceHTTP(users.canFind(_user), HTTPStatus.notFound, "User not found");
 
         auto userPath = buildPath(DEMOS_PATH, _client, _user);
         auto userName = cast(string)Base32.decode(_user.toUpper);
-        auto demoFiles = dirEntries(userPath, "*.dem", SpanMode.shallow).array;
-        auto demos = demoFiles.sort!"a.timeLastModified < b.timeLastModified";
+        auto demoFiles = getDemos(_client, _user).array;
+        auto demos = demoFiles.sort!"a.timeLastModified > b.timeLastModified";
 
-        res.render!("demos.dt", _client, _user, userPath, userName, demos);
+        auto client = _client, user = _user;
+        res.render!("demos.dt", client, user, userPath, userName, demos);
     }
 }
