@@ -6,7 +6,7 @@ block head
 block content
     - import demo_presenter;
 
-    h1 Demos for '#{userName}'
+    h2 '#{userName}'
 
     .panel.panel-info
         .panel-heading Demos (#{demos.length})

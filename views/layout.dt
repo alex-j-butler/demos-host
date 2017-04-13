@@ -7,6 +7,20 @@ html(lang="en")
         block head
     body
         .container
+            h1
+                a(href="/") ozfortress Demos
+
+            form(action="/", method="get")
+                .input-group
+                    - static if (!__traits(compiles, query))
+                        - auto query = "";
+                    input.form-control(name="q", placeholder="User Search", type="text", value=query)
+                    .input-group-btn
+                        button.btn.btn-default(type="Submit")
+                            i.glyphicon.glyphicon-search
+
+            hr
+
             block content
         .sidebar
             block sidebar

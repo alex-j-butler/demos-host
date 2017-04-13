@@ -11,17 +11,6 @@ block content
 
     - import demo_presenter;
 
-    h1 ozfortress Demos
-
-    form(action="/", method="get")
-        .input-group
-            input.form-control(name="q", placeholder="User Search", type="text", value=query)
-            .input-group-btn
-                button.btn.btn-default(type="Submit")
-                    i.glyphicon.glyphicon-search
-
-    hr
-
     - if (query !is null)
         .panel.panel-info
             .panel-heading Users (#{users.length})

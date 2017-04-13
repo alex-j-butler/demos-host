@@ -1,0 +1,14 @@
+extends layout.dt
+
+block head
+    title Error #{err.code}
+
+block content
+    - import config.env;
+
+    h3 Error #{err.code}, #{err.message}
+
+    - if (config.env.env != Environment.production)
+        pre
+            = err.exception
+            = err.exception.info

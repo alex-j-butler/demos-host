@@ -1,3 +1,5 @@
+import std.utf;
+import std.conv;
 import std.file;
 import std.path;
 import std.array;
@@ -31,8 +33,15 @@ shared static this() {
     // Better log formatting
     setLogFormat(FileLogger.Format.thread, FileLogger.Format.thread);
 
+    // Error page
+    settings.errorPageHandler = (res, req, err) => errorPage(res, req, err);
+
     listenHTTP(settings, router);
     logInfo("See status at http://127.0.0.1:%s/status".format(settings.port));
+}
+
+void errorPage(HTTPServerRequest req, HTTPServerResponse res, HTTPServerErrorInfo err) {
+    res.render!("error.dt", err);
 }
 
 auto getClients() {
@@ -137,17 +146,33 @@ class DemosHost {
         // Sanitize Client
         auto clients = getClients();
         enforceHTTP(clients.canFind(_client), HTTPStatus.notFound, "Client not found");
+        auto client = _client;
 
         // Sanitize User
         auto users = getUsers(_client);
-        enforceHTTP(users.canFind(_user), HTTPStatus.notFound, "User not found");
+        if (!users.canFind(_user)) {
+            // Show an empty page for valid users that don't have demos
+            string userName;
+            try {
+                userName = cast(string)Base32.decode(_user.toUpper);
+                // Filter out invalid UTF-8 characters
+                userName = userName.to!dstring.filter!isValidDchar.array.to!string;
+            } catch (Exception e) {
+                if (cast(Base32Exception)e || cast(UTFException)e) {
+                    throw new HTTPStatusException(HTTPStatus.badRequest, "Invalid User");
+                }
+                throw e;
+            }
+            res.render!("demos_empty.dt", client, userName);
+            return;
+        }
+        auto user = _user;
 
         auto userPath = buildPath(DEMOS_PATH, _client, _user);
         auto userName = cast(string)Base32.decode(_user.toUpper);
         auto demoFiles = getDemos(_client, _user).array;
         auto demos = demoFiles.sort!"a.timeLastModified > b.timeLastModified";
 
-        auto client = _client, user = _user;
         res.render!("demos.dt", client, user, userPath, userName, demos);
     }
 }
