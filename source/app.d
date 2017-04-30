@@ -41,6 +41,11 @@ shared static this() {
 }
 
 void errorPage(HTTPServerRequest req, HTTPServerResponse res, HTTPServerErrorInfo err) {
+    // Log all exceptions
+    logError("%s", err.exception);
+    // Don't fill the log with status exceptions, those we can usually ignore
+    if (cast(HTTPStatusException)err.exception) logInfo("%s", err.exception.info);
+
     res.render!("error.dt", err);
 }
 
