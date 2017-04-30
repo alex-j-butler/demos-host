@@ -85,7 +85,11 @@ auto findUsers(string query) {
     Tuple!(string, string, string, float)[] goodMatches;
 
     foreach (group; users) {
-        auto userName = cast(string)Base32.decode(group[1].toUpper);
+        try {
+            auto userName = cast(string)Base32.decode(group[1].toUpper);
+        } catch(Base32Exception e) {
+            continue;
+        }
         auto name = userName.toUpper;
 
         auto distance = normalizedLevenshteinDistance(query, name);
