@@ -115,16 +115,11 @@ auto router() {
 
     auto fsettings = new HTTPFileServerSettings;
     fsettings.serverPathPrefix = "";
-    router.get("/status", &getStatus);
     router.get("*", serveStaticFiles("public/", fsettings));
 
     router.registerWebInterface(new DemosHost);
 
     return router;
-}
-
-void getStatus(scope HTTPServerRequest req, scope HTTPServerResponse res) {
-    res.writeBody("Running");
 }
 
 class DemosHost {
