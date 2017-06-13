@@ -8,7 +8,7 @@ html(lang="en")
     body
         .container
             h1
-                a(href="/") ozfortress Demos
+                a(href="/") Qixalite Demos
 
             form(action="/", method="get")
                 .input-group
