@@ -122,6 +122,35 @@ auto router() {
 }
 
 class DemosHost {
+    @path("/api/users")
+    void getUsersAPI(scope HTTPServerResponse res) {
+        struct User {
+            string client;
+            string enc_name;
+            string name;
+        }
+
+        auto usrs = getUsers().map!(users => User(users[0], users[1], cast(string)Base32.decode(users[1].toUpper))).array;
+        res.writeJsonBody(usrs);
+    }
+
+    @path("/api/demos/:client/:encuser")
+    void getDemosAPI(string _client, string _encuser, scope HTTPServerResponse res) {
+        struct Demo {
+            string client;
+            string name;
+            string demo_name;
+            string download_path;
+            ulong size;
+            DateTime creation_time;
+        }
+        
+        auto demoFiles = getDemos(_client, _encuser).array;
+        auto demos = demoFiles.sort!"a.timeLastModified > b.timeLastModified";
+        auto userDemos = demos.map!(demo => Demo(_client, _encuser, demo.baseName, "/demos/%s/%s/%s".format(_client, _encuser, demo.baseName), demo.size, cast(DateTime)demo.timeLastModified)).array;
+        res.writeJsonBody(userDemos);
+    }
+
     @path("/")
     void getIndex(scope HTTPServerRequest req, scope HTTPServerResponse res) {
         Tuple!(string, string, string, float)[] users;
