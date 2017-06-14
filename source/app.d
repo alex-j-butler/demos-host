@@ -37,7 +37,6 @@ shared static this() {
     settings.errorPageHandler = (res, req, err) => errorPage(res, req, err);
 
     listenHTTP(settings, router);
-    logInfo("See status at http://127.0.0.1:%s/status".format(settings.port));
 }
 
 void errorPage(HTTPServerRequest req, HTTPServerResponse res, HTTPServerErrorInfo err) {
